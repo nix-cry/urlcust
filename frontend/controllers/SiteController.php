@@ -76,9 +76,33 @@ class SiteController extends Controller
      *
      * @return mixed
      */
+
+    private function banIp($array)
+    {
+        $arS = [
+            '01',
+            '02',
+            '03',
+            '04',
+            '05',
+            '06',
+            '07',
+            '08',
+            '09',
+            '00',
+        ];
+        $intStr = false;
+        foreach($array as $timeDiff){
+            $strTime = (string)$timeDiff["diff_time"];
+            if( in_array($strTime, $arS) ){
+                $intStr = true; 
+            }
+        }
+        return $intStr;
+    }
+    
     public function actionIndex($id)
     {
-
             \Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
             $request = Yii::$app->request;
 
@@ -86,35 +110,67 @@ class SiteController extends Controller
             $post = Yii::$app->db->createCommand('SELECT * FROM addurl WHERE url_new_name=:url_new_name')
                ->bindValues($params)
                ->queryOne();
-
-
-            Yii::$app->db->createCommand()->insert('urlget', [
-                'date' => date("Y-m-d"),
-                'url_name' => $post["url_name"],
-
-            ])->execute();
-            
-            header('Location: '.$post["url_name"]);
-            exit();
-            $data = ['id'=>2,'text'=>'zzz', 'urlnew' => 'http://'.$_SERVER["HTTP_HOST"].'/'.$id, 'post' => $post["url_name"]];
-            return $data;
-
+            $params = [':ip' => $_SERVER["REMOTE_ADDR"]];
+            $postDiff = Yii::$app->db->createCommand('SELECT * FROM urlget WHERE ip=:ip ORDER BY ip, id DESC LIMIT 5')
+               ->bindValues($params)
+               ->queryAll();
+            $params = [':ip' => $_SERVER["REMOTE_ADDR"]];
+            $postDiffTime = Yii::$app->db->createCommand('SELECT * FROM urlget WHERE ip=:ip ORDER BY ip, id DESC LIMIT 1')
+               ->bindValues($params)
+               ->queryAll();
+            if(empty($postDiffTime)){
+                Yii::$app->db->createCommand()->insert('urlget', [
+                    'date' => date("Y-m-d H:i:s"),
+                    'url_name' => $post["url_name"],
+                    'ip' => $_SERVER["REMOTE_ADDR"],
+                    'diff_time' => date("Y-m-d H:i:s"),
+                    'user_agent' => $_SERVER["HTTP_USER_AGENT"],
+                ])->execute();
+                header('Location: '.$post["url_name"]);
+                exit();
+            }else{
+                $diff = strtotime(date("Y-m-d H:i:s")) - strtotime($postDiffTime[0]["date"]);
+                Yii::$app->db->createCommand()->insert('urlget', [
+                    'date' => date("Y-m-d H:i:s"),
+                    'url_name' => $post["url_name"],
+                    'ip' => $_SERVER["REMOTE_ADDR"],
+                    'diff_time' => abs($diff),
+                    'user_agent' => $_SERVER["HTTP_USER_AGENT"],
+                ])->execute();
+                if($this->banIp($postDiff)){
+                    $data = ['ip'=>'Бан ip','ban' => $this->banIp($postDiff), 'text' => 'Подозрительная активность вашего ip'];
+                    return $data;
+                }else{
+                    header('Location: '.$post["url_name"]);
+                    exit();
+                }
+            }
     }
-
-
-
-        /**
+    /**
      * Displays Urlwork page.
      *
      * @return mixed
      */
+    public function actionUseragent()
+    {
+        \Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+            $request = Yii::$app->request;
+
+        $params = [':user_agent' => $_GET["useragent"]];
+        $post = Yii::$app->db->createCommand('SELECT * FROM urlget WHERE user_agent=:user_agent')
+           ->bindValues($params)
+           ->queryAll();
+
+        return $post;
+    }
+
+
     public function actionUrlwork()
     {
         $model = new UrlForm();
         if ($model->load(Yii::$app->request->post()) && $model->validate()) {
             return $this->refresh();
         }
-
         $params = [];
         $post = Yii::$app->db->createCommand('SELECT url_name as url, COUNT(1) as count,date as month FROM urlget GROUP BY url_name, date  
         ORDER BY `count`  DESC ')
@@ -125,10 +181,6 @@ class SiteController extends Controller
             'model' => $model,
             'arrGet' => $post,
         ]);
-
-
-
-
     }
 
 

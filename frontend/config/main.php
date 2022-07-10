@@ -52,7 +52,7 @@ return [
             'showScriptName' => false,
             'rules' => [
                 
-                
+                '/useragent' => 'site/useragent',
                 '/urlwork' => 'site/urlwork',
                 '/urlworkjson' => 'site/urlworkjson',
                 '/<id:>' => 'site/index',

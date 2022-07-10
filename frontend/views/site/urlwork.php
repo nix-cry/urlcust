@@ -50,7 +50,7 @@ $this->params['breadcrumbs'][] = $this->title;
     </div>
 
 <div style="overflow-y: scroll; width:100%;" >
-<?php foreach($arrGet as $item ) {?>
+<?php $iCdArr = []; $iCd = 1; $iCdi = 0; foreach($arrGet as $item ) { $iCdArr[$iCdi] = date("m", strtotime($item["month"])); ?>
     <div class="row">
         <div class="col-lg-3">
             
@@ -72,13 +72,28 @@ $this->params['breadcrumbs'][] = $this->title;
             
         </div>
         <div class="col-lg-3">
-            
-                
-                <?= $item["count"] ?></br>
-            
+
+                <?php $iCdN = $iCdi-1; if( $iCdi == 0 ){ ?>
+                        <?= $iCd ?></br>
+                <?php }else{ ?>
+                        <?php  if( $iCdArr[$iCdN] === $iCdArr[$iCdi] ) { ?>
+                                <?= $iCd ?></br>
+                        <?php }else{  $iCd = 1; ?>
+                                <?= $iCd ?></br>
+                        <?php } ?>
+                <?php } ?>
         </div>
     </div>
-<?php }?>
+<?php $iCdi++; $iCd++;}?>
+
+<?php
+//$file = $_SERVER['DOCUMENT_ROOT'].'/good.txt';
+//$current = file_get_contents($file);
+// $ps = $_SERVER["REMOTE_ADDR"];
+// echo $ps.' date: '.date("d-m-Y H:i:s").' url: '.$_SERVER['SERVER_NAME'].$_SERVER['REQUEST_URI'].' ';
+//file_put_contents($file, $current);
+
+?>
 </div>
 </div>
 </div>
